@@ -1,7 +1,7 @@
 {
   "name": "gigabitelabs-redis",
   "version": "0.1.0",
-  "description": "A Redis client and datalayer framework to share with GBL API and Node.js server instances",
+  "description": "A Redis DB client for sharing a Redis DB instance among several Node.js applications.",
   "main": "index.js",
   "scripts": {
     "test": "node tests/test.js"
@@ -16,7 +16,7 @@
     "shared"
   ],
   "author": "DanBurkhardt",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/GigabiteLabs/GBLRedis/issues"
   },

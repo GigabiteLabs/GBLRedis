@@ -104,7 +104,8 @@ class RedisClient {
                     if(res == 1){
                         resolve('successfully deleted')
                     }else{
-                        reject('attempt to deleted failed, no value stored at key!')
+                        self.log.info('attempt to deleted failed, no value stored at key!')
+                        resolve(null)
                     }
                 })
             } catch (e) {

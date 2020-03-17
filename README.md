@@ -1,5 +1,6 @@
 <p align="center"><img src="https://www.gigabitelabs.com/codeassets/gigabitelabs-redis.png" alt="GigabiteLabs" width="350">
 </p>
+
 # GigabiteLabs-Redis
 A Redis DB client for sharing a Redis DB instance among several Node.js applications.
 

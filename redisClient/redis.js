@@ -10,23 +10,71 @@ class RedisClient {
         this.log = log
         this.log.trace('RedisClient Instantiated')
         this.prefix = process.env.REDIS_PREFIX
-        // Ensure valid env vars
-        if (!process.env.REDIS_CERT || !process.env.REDIS_URL){
+        
+        // check if the framework is minimally
+        // configured and may proceed to setup
+        switch (this.canProceedToSetup()) {
+        case true:
+            switch (this.shouldUseSSLConfig()){
+            case true:
+            case false:
+            default:
+                // fatal
+            }
+        default:
+            // fatal
+        }
+        
+        {
             this.log.error('no redis credentials provided at cert path')
             process.exit(1)
         }
+
+    }
+
+    async canProceedToSetup() {
+        return this.shouldUseSSLConfig() || this.sholdUseCloudPlatformConfig()
+    }
+
+    async setupWithCloudPlatformConfig() {
+        switch(process.env.REDIS_CLOUD_PLATFORM_TARGET) {
+        case 'ibmcloud':
+            // source env from VCAP
+        default:
+            // fartal error
+        }
+        
+    }
+
+    async sholdUseCloudPlatformConfig() {
+        const supportedPlatforms = ['ibmcloud']
+        // env var must be set, 
+        // and one of the supported options
+        return ((process.env.REDIS_CLOUD_PLATFORM_TARGET) && supportedPlatforms.includes(process.env.REDIS_CLOUD_PLATFORM_TARGET))
+    }
+
+    async shouldUseSSLConfig() {
+        const certPathProvided = (process.env.REDIS_CERT || process.env.REDIS_SSL_CERT)
+        const urlProvided = (process.env.REDIS_URL || process.env.REDIS_COMPOSED_URL)
+        return certPathProvided && urlProvided
+    }
+
+    async setupWithSSLConfig() {
+        const { REDIS_CERT, REDIS_SSL_CERT, REDIS_URL, REDIS_COMPOSED_URL} = process.env
+        const cert = REDIS_CERT || REDIS_SSL_CERT
+        const url = REDIS_URL || REDIS_COMPOSED_URL
+
         // Ensure valid composed URL in env vars
-        if (process.env.REDIS_URL.startsWith("rediss://")) {
+        if (url.startsWith("rediss://")) {
             const tls = require('tls')
             var ssl = {
-                ca: [ fs.readFileSync(process.env.REDIS_CERT, 'ascii') ]
+                ca: [ fs.readFileSync(cert, 'ascii') ]
             }
             // Attempt to create a client
-            this.client = redis.createClient(process.env.REDIS_URL, {tls: ssl})
+            this.client = redis.createClient(url, {tls: ssl})
             // handle failure
             .on("error", function(err) {
-                this.log.error("FATAL ERROR" + err)
-                process.exit(1)
+                this.log.error("ERROR: Redis client could not be configured: " + err)
             })
 
         } else {

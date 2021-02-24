@@ -33,18 +33,9 @@ The main goals of this framework:
 - To make it possible for various apps within an org to share data by using common key-prefix naming conventions
 - To make it easy to store native objects as well as strings with little-to-no parsing or stringification necessary 
 
-## Config & Use
+## Setup & Usage
 
-### Environment Configuration
-You'll need to have thee variables exported in your env to enable the connection to Redis
-
-- `export REDIS_CERT="/Pathto/Your.crt"`
-- `export REDIS_URL="rediss://admin:$PASS@URL_PATH.databases.appdomain.cloud:32389/0"`
-- `export REDIS_PREFIX="${InstanceName}:"` 
-
-### Examples
-
-#### Example Setup
+### Setup
 Instantiate this module as a client
 
 ```
@@ -67,18 +58,19 @@ function endpointFuncNeedsRedis(req, res){
 }
 ```
 
-#### Example Operations
+### Usage Examples
+
 **Operation Notes / Rules:** 
 
 - All values will be returned as hash maps, so you will need to handle non-null returned values with `JSON.parse()` to convert them back to objects. 
 
 This is an intentional design decision. We can't be sure that you will expect to recieve an object *in all cases* where you retrieve data from Redis.
 
-- Any operations attempted on key paths that are non-existent will not `throw`, instead they will return a `null` value with `resolve()` for graceful error handling.
+- Any operations attempted on key paths that are non-existent will **not** `throw`. Errors will be logged, and return values will return as `null` value through `resolve()` for graceful error handling.
 
 And finally:
 
-- Any errors from Redis will `throw`, so a try / catch pattern is reccomended.
+- Since errors do **not**  `throw`, a try / catch pattern is reccomended.
 
 Therefore, a conditional that check on return values after using `await` is reccomended:
 
@@ -99,12 +91,12 @@ Call the test function. Results will print to the log
 
 `redisClient.testSetGet()`
  
- 
-Set an object in Redis DB
+**Store an object in Redis DB**
 
 `await redisClient.set('cat',{"name":"snuffles"})`
 
-Get an object from Redis DB
+
+**Get an object from Redis DB**
 
 ```
 let cat = await redisClient.get('cat')
@@ -113,9 +105,7 @@ console.log(cat)
 ```
 
 
-
-
-Update object in Redis DB
+**Update object in Redis DB**
 
 `await redisClient.set('cat',{"status":"ran away"})`
 
@@ -126,58 +116,74 @@ Update object in Redis DB
 - If the object does exist, it merges the two objects, preserving unchanged keys and values, and overwriting existing values for the same keys with the newwer data
 - It then sets the new merged object at the original key provided and uses `resolve(res)` to indicate success (res is the 'OK' string that Redis returns in a successful operation)
 
+**Delete an object in Redis DB**
 
+// TODO: Add
 
-### Environment Vars Explained
+<br>
 
-1) **REDIS_PREFIX**
+### Environment Configuration
 
-In order to meet the goal of safely sharing a single Redis instance among several API servers and applications, there needs to be a method of preventing key / value storage collisions. 
+#### Mandatory Env Vars
 
-A simple answer is to prefix all keys with a short name of the instance that the key belongs to / was set by.
+These vars **must** be configured or the framework will not function properly and may crashe.
 
-**Example Use Case** 
+| var name | required datatype | purpose | considerations | example |
+| -------- | ----------------- | ------- | -------------- | ------- |
+| `REDIS_SSL_CERT`             | string | specifies the local path to the TLS certificate | `REDIS_CERT="local/path_to/your.crt` |
+| `REDIS_INSTANCE_URL`         | string | a non-composed URL | if this value is set, the value / config for `REDIS_COMPOSED_URL` will be ignored | `REDIS_INSTANCE_URL="https://yourdomain.com:${port}/0"` |
+| `REDIS_COMPOSED_URL`         | string | a composed URL | do not set `REDIS_INSTANCE_URL` if you use a composed URL. | `REDIS_URL="rediss://admin:$PASS@URL_PATH.domain.com:${port}/0"` |
+| `REDIS_PREFIX`               | string | (see expanded notes) | (see expanded notes) | `REDIS_PREFIX="${InstanceName}:"` |
 
-- We want to store data at a key named "dogs"
-- Our `REDIS_PREFIX` string is "Devops:"
-- When we pass the key value: 
+**Expanded notes:**
 
-`client.set('dogs', {"sound":"woof"})`
+1) `REDIS_PREFIX`: purpose
+ The value set is used as a prefix on all object keys. This configuration is used automatically and segregates data by prefixing the keys for all data operatons with this string. 
+ 
+ The prefix is **invisible** to the client application, you **do not need** to explicitly use this value in any operations, the client framework uses it automatically. 
+ 
+ Prefixing keys is a low-cost solution to enabling data paritioning, allowing multiple application instances to use the same database without collisions. 
 
-- The actual key that the function uses to store the object concatenates the key string and prefix and stores the object at key 'Devops:dogs'
-- However, the developer doesn't have to worry about this at all
-- Developers: you simply pass in your 'key' string, the prefixing happens at the data layer automatically for you
-- This process is also invisibile even in the logs.
+2) `REDIS_PREFIX`: considerations
+This client framework is designed for flexible use in production software environments, which typically feature development & devops configurations that allow an application to exist in several states of reliability (ex: local / test, dev, preprod, prod, etc.)
 
+ Provisioning a separate database service for each application instance is a costly and unmanagable arrangement, therefore, this framework allows a **single Redis DB service** to be safely shared among all instances of an application.
+ 
+To do this right, you need to make sure that each of your instances uses a unique string appropriate to it's environment. For example: 'test', 'dev', 'preprod', 'prod'.
 
-**TL;DR**
+This configuration also could potentially allow a single database service to be shared among all instances of *multiple projects* just by using a more specific prefix string. For example: 'projectone-dev', prjectone-preprod' versus 'projecttwo-dev', prjecttwo-preprod'. 
 
-An instance prefixed with `'Devops:'` could store data at the same key name as another instance that uses this client, to access the same Redis instance and collisions / data overwirtes will be avoided ..
+How you use naming conventions for prefixing is up to you, but once they are set, they cannot be changed without manually migrating all data, which is outside the scope of this framework at this time.
 
-*so long as* (and this is the key) there are **no two applications sharing a Redis instance with the same exact `REDIS_PREFIX` string**.
+<br>
+#### Optional Env Vars
 
-**Suggested Rules & Conventions:**
+The following env vars are not mandatory, and allow you some control over the framework behavior, defaults, and cloud platform config.
 
-Our team adopts these conventions, they help eliminate variability and potential issues with invalid characters / inconsistency. 
+| var name | required datatype | purpose | default | considerations | example |
+| -------- | ----------------- | ------- | ------- | -------------- | ------- |
+| `REDIS_LOG_LEVEL` | string | the level of logging the framework should use. mmust be a level supported by [log4js](https://www.npmjs.com/package/log4js) | `REDIS_LOG_LEVEL=${error, warn, info, debug, trace}` |
+| `REDIS_DEFAULT_EXP` | int | the value is used by the framework auto-expire (delete) stored objects. | objects are **not** expired by default | if set, it will apply to *all* newly created objects, however it will not apply to any existing objects. updating an object has no effect on its expiration time, exp is only set when storing it for the first time. if an exp is provided during an operation, that exp *overrides* the value set by this var and will be used instead | `REDIS_DEFAULT_EXP=3600` // auto-exp all new objs in one hour |
+| `REDIS_CLOUD_PLATFORM_TARGET` | string | the string specifies one of the supported cloud platforms where the Redis instance is hosted. if set to a supported platform value, the framework will attempt to read all connection credentials from the platform's environment, according to the platform's developer documentation | no default value |  `REDIS_CLOUD_PLATFORM_TARGET=${ibmcloud}` |
 
-You can do whatever you like, this framework does not enforce any of these, they are just agreed conventions internally.
+<br>
 
-- The `REDIS_PREFIX` MUST be only one word followed immediately by a colon, e.g. 'Hockey:' or 'Devops:'
-- The single word must be unique to describe the app or instance it belongs to, and no other instance
-- The first letter only should be capitalized, or all should be lowercased
-- No numbers or special characters
+#### Deprecated Env Vars
 
-2) **REDIS_CERT**
+- these env vars are officially deprecated, which means they may be removed at any time
+- to prevent breaking any existing applications, we will continue to support both old and new for a period of time
+    - eventually these will be totally removed, so please be sure to update your env config
 
-- This is a path to a file on your machine of the .crt file that enables full SSL / TLS mutual authentication between your app and Redis
+| ------------ | -------------------- | ------ | --------------- |
+| var name     | new var name         | reason | date deprecated |
+| `LOG_LEVEL`  | `REDIS_LOG_LEVEL`    | using 'REDIS" prefix to prevent accidental collision with an app's generic env vars | 2/24/2021 |
+| `REDIS_CERT` | `REDIS_SSL_CERT`     | we are adding support for a JSON env var that does the same, so we need to separate the two | 2/24/2021 |
+| `REDIS_URL`  | `REDIS_COMPOSED_URL` | we're adding support for instances that are not accessible through a composed URL, so we need less ambigous naming | 2/24/2021 |
 
-3) **REDIS_URL**
-
-- This is the *composed* url that includes the username (admin) and the password, as well as url path, port, and instance number (/0)
-
-Please reach out to [Dan](https://github.com/DanBurkhardt) if you do not have credentials or are having issues.
+<br>
 
 ## Tests
+
 **Warning:** These tests will use the live Redis instance that is configured with your env vars. 
 
 All data at the keys `test` & `cats` will be overwritten and modified. Please ensure you don't have any necessary data stored in Redis at those key paths.
@@ -203,5 +209,3 @@ To run:
 - clone the repo
 - cd to the root of the repo folder
 - run `npm run test` 
-
-TODO: Implement a more standard & detailed testing framework instead of direct operations without assertions (such as NYC or Mocha).

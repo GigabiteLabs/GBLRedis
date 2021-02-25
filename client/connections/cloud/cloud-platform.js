@@ -35,6 +35,7 @@ class CloudPlatform {
 
         this.connectionURL = composedUrl
         this.tlsConfig = tlsConfig
+        this.tlsConfig.prefix = this.env.config.prefix
 
     }
 

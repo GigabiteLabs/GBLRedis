@@ -1,7 +1,6 @@
-let log = require('../utilities/appLogger.js')('redisTests.js')
-let client = require('../index')
+let log = require('../client/utilities/logger.js')('redisTests.js')
 
-async function test(){
+async function test(client) {
 	try {
 		// Seed initial data
 		log.info('seeding test data')
@@ -107,4 +106,5 @@ async function test(){
 		process.exit(1)
 	}
 }
+
 module.exports = test

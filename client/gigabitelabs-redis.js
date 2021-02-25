@@ -1,100 +1,26 @@
 const redis = require('redis')
 const fs = require('fs')
-const log = require('../utilities/appLogger.js')('RedisClient')
+const log = require('./utilities/logger')
+const { errors } = require('./constants/messages')
+const Setup = require('./setup/setup-config')
 
 // Serves as single application Redis client instance,
 // and encapsulates all database operations
-class RedisClient {
-
+class GBLRedis {
     constructor(){
-        this.log = log
+        this.log = log('RedisClient')
+        this.env = require('./constants/env')
+        this.constants = require('./constants/app-constants')
+        this.msgs = require('./constants/messages')
         this.log.trace('RedisClient Instantiated')
-        this.prefix = process.env.REDIS_PREFIX
-        
-        // check if the framework is minimally
-        // configured and may proceed to setup
-        switch (this.canProceedToSetup()) {
-        case true:
-            switch (this.shouldUseSSLConfig()){
-            case true:
-            case false:
-            default:
-                // fatal
-            }
-        default:
-            // fatal
-        }
-        
-        {
-            this.log.error('no redis credentials provided at cert path')
-            process.exit(1)
-        }
-
+        return
     }
 
-    async canProceedToSetup() {
-        return this.shouldUseSSLConfig() || this.sholdUseCloudPlatformConfig()
-    }
-
-    async setupWithCloudPlatformConfig() {
-        switch(process.env.REDIS_CLOUD_PLATFORM_TARGET) {
-        case 'ibmcloud':
-            // source env from VCAP
-        default:
-            // fartal error
-        }
-        
-    }
-
-    async sholdUseCloudPlatformConfig() {
-        const supportedPlatforms = ['ibmcloud']
-        // env var must be set, 
-        // and one of the supported options
-        return ((process.env.REDIS_CLOUD_PLATFORM_TARGET) && supportedPlatforms.includes(process.env.REDIS_CLOUD_PLATFORM_TARGET))
-    }
-
-    async shouldUseSSLConfig() {
-        const certPathProvided = (process.env.REDIS_CERT || process.env.REDIS_SSL_CERT)
-        const urlProvided = (process.env.REDIS_URL || process.env.REDIS_COMPOSED_URL)
-        return certPathProvided && urlProvided
-    }
-
-    async setupWithSSLConfig() {
-        const { REDIS_CERT, REDIS_SSL_CERT, REDIS_URL, REDIS_COMPOSED_URL} = process.env
-        const cert = REDIS_CERT || REDIS_SSL_CERT
-        const url = REDIS_URL || REDIS_COMPOSED_URL
-
-        // Ensure valid composed URL in env vars
-        if (url.startsWith("rediss://")) {
-            const tls = require('tls')
-            var ssl = {
-                ca: [ fs.readFileSync(cert, 'ascii') ]
-            }
-            // Attempt to create a client
-            this.client = redis.createClient(url, {tls: ssl})
-            // handle failure
-            .on("error", function(err) {
-                this.log.error("ERROR: Redis client could not be configured: " + err)
-            })
-
-        } else {
-            this.log.error('Invalid redis URL provided in env vars')
-            process.exit(1)
-        }
-    }
-
-    // A test function to prove set/get 
-    async testSetGet(){
-        try {
-            await this.client.hmset(`${this.prefix}test`, "foo", "bar")
-            await this.client.hgetall(`${this.prefix}test`, function (err, reply) {
-                if (err) throw err
-                console.log('\ncalled test, testing storage and retrieval of dummy value {\"foo\":\"bar\"} .. ')
-                console.log(`Retrieval of dummy value success: \'${JSON.stringify(reply)}\', proceed.`)
-            })
-        }catch(e){
-            this.log.error(e)
-        }
+    async init() {
+        this.log.debug('initializing framework')
+        const setup = await new Setup()
+        this.client = await setup.getClient()
+        return this
     }
 
     // Gets a hashmap / object by key name
@@ -197,7 +123,21 @@ class RedisClient {
             }
         })
     }
+
+    // A test function to prove set/get 
+    async testSetGet(){
+        try {
+            await this.client.hmset(`${this.prefix}test`, "foo", "bar")
+            await this.client.hgetall(`${this.prefix}test`, function (err, reply) {
+                if (err) throw err
+                console.log('\ncalled test, testing storage and retrieval of dummy value {\"foo\":\"bar\"} .. ')
+                console.log(`Retrieval of dummy value success: \'${JSON.stringify(reply)}\', proceed.`)
+            })
+        }catch(e){
+            this.log.error(e)
+        }
+    }
 }
 
-module.exports = RedisClient
+module.exports = GBLRedis
 

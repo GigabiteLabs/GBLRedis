@@ -239,8 +239,9 @@ checkout this [example script]() for further reference.
 - to prevent breaking any existing applications, we will continue to support both old and new for a period of time
     - eventually these will be totally removed, so please be sure to update your env config
 
-| ------------ | -------------------- | ------ | --------------- |
+
 | var name     | new var name         | reason | date deprecated |
+| ------------ | -------------------- | ------ | --------------- |
 | `LOG_LEVEL`  | `REDIS_LOG_LEVEL`    | using 'REDIS" prefix to prevent accidental collision with an app's generic env vars | 2/24/2021 |
 | `REDIS_CERT` | `REDIS_SSL_CERT`     | we are adding support for a JSON env var that does the same, so we need to separate the two | 2/24/2021 |
 | `REDIS_URL`  | `REDIS_COMPOSED_URL` | we're adding support for instances that are not accessible through a composed URL, so we need less ambigous naming | 2/24/2021 |

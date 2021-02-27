@@ -2,7 +2,7 @@
 </p>
 
 # GigabiteLabs-Redis
-A Redis DB client for sharing a Redis DB instance among several Node.js applications.
+An opinionated Redis DB client wrapper optimized for sharing a single Redis DB among several organizations, projects, and environments.
 
 [GigabiteLabs](https://gigabitelabs.com) is a creative design & development firm that specializes in engineering surprisingly great apps.
 <p>We turn big ideas into big impact 🚀 
@@ -12,10 +12,14 @@ A Redis DB client for sharing a Redis DB instance among several Node.js applicat
 
 ## Features
 
+- Simple configuration, with lots of options
+- Multiple platform environment support: compatible with cloud platform environments, as well as direct connections
+- Secure: Optimized for TLS / SSL connections to your Redis host (or no auth, as you wish!)
+- Complexity & collision reductions by enforcing namespaces for stored data
 - Operations fully promise-ified with `async` / `await`
-- Graceful handling of invalid keys with non-throwing return values
-- Encapsulation of object storage, making object storage feel native
-- Optimized for TLS / SSL connections to Redis
+- It won't crash your app: graceful handling of invalid keys with non-throwing return values
+- Encapsulation of object storage in a way that makes storing objects feel native
+
 
 ### Requirements
 
@@ -25,13 +29,18 @@ A Redis DB client for sharing a Redis DB instance among several Node.js applicat
 
 Some services that support TLS / SSL connections to Redis instances are IBM Cloud, AWS, Azure, and of course you could always configure a custom publicly accessible instance yourself.
 
-## Goals
-The main goals of this framework:
+## Goals & Opinions
+
+**Goals**
+The main goals of this framework are:
 
 - To enable adopters to share access to a secure public Redis instant with several API server instances or Node.js applications
 - To ensure safety and collision-prevention while sharing data amongst several instances by using instance-specific key naming conventions
 - To make it possible for various apps within an org to share data by using common key-prefix naming conventions
 - To make it easy to store native objects as well as strings with little-to-no parsing or stringification necessary 
+
+
+
 
 ## Setup & Usage
 
@@ -122,18 +131,25 @@ console.log(cat)
 
 <br>
 
+### Namespaces: The Key to Sharing Redis DB
+
+//  TODO: add docs / explanation
+
 ### Environment Configuration
 
 #### Mandatory Env Vars
 
-These vars **must** be configured or the framework will not function properly and may crashe.
+These vars **must** be configured or the framework will not function properly.
 
-| var name | required datatype | purpose | considerations | example |
-| -------- | ----------------- | ------- | -------------- | ------- |
-| `REDIS_SSL_CERT`             | string | specifies the local path to the TLS certificate | `REDIS_CERT="local/path_to/your.crt` |
-| `REDIS_INSTANCE_URL`         | string | a non-composed URL | if this value is set, the value / config for `REDIS_COMPOSED_URL` will be ignored | `REDIS_INSTANCE_URL="https://yourdomain.com:${port}/0"` |
-| `REDIS_COMPOSED_URL`         | string | a composed URL | do not set `REDIS_INSTANCE_URL` if you use a composed URL. | `REDIS_URL="rediss://admin:$PASS@URL_PATH.domain.com:${port}/0"` |
-| `REDIS_PREFIX`               | string | (see expanded notes) | (see expanded notes) | `REDIS_PREFIX="${InstanceName}:"` |
+Warning: improper configuration could cause crashes in development (by design). 
+be sure to enable a higher level of logging monitor configuration messages upon first setup & config.
+
+| var name | required datatype | purpose | considerations | default | example |
+| -------- | ----------------- | ------- | -------------- | ------- | ------- |
+| `REDIS_PREFIX`               | string | (no default) | (see expanded notes) | (see expanded notes) | `REDIS_PREFIX="${InstanceName}:"` |
+| `REDIS_CONNECTION_METHOD` | string | default is to attempt config via `cloud-env` | explicitly tells the framework what method of establishing a connection to a Redis instance should be used | only one option may be used and only this method will be used. if connection fails, it will not attempt to use another method to reconnect | `REDIS_CONNECTION_METHOD="${'cloud-env', 'direct-ssl-tls', 'basic-auth', 'no-auth'}:"` |
+
+
 
 **Expanded notes:**
 
@@ -162,9 +178,45 @@ The following env vars are not mandatory, and allow you some control over the fr
 
 | var name | required datatype | purpose | default | considerations | example |
 | -------- | ----------------- | ------- | ------- | -------------- | ------- |
+| `REDIS_CLIENT_OPTS` | stringified object that is parsable to JSON | set this env var to pass config options supported by the [redis framework](https://npmjs.com/package/redis) through to the underlying framework during initialization | no default value | configuring any options that conflict with the opinionated-nature of this framework, such as prefixes, will be ignored | `REDIS_CLIENT_OPTS=\'{ string_numbers: false }\'`
 | `REDIS_LOG_LEVEL` | string | the level of logging the framework should use. mmust be a level supported by [log4js](https://www.npmjs.com/package/log4js) | `REDIS_LOG_LEVEL=${error, warn, info, debug, trace}` |
 | `REDIS_DEFAULT_EXP` | int | the value is used by the framework auto-expire (delete) stored objects. | objects are **not** expired by default | if set, it will apply to *all* newly created objects, however it will not apply to any existing objects. updating an object has no effect on its expiration time, exp is only set when storing it for the first time. if an exp is provided during an operation, that exp *overrides* the value set by this var and will be used instead | `REDIS_DEFAULT_EXP=3600` // auto-exp all new objs in one hour |
-| `REDIS_CLOUD_PLATFORM_TARGET` | string | the string specifies one of the supported cloud platforms where the Redis instance is hosted. if set to a supported platform value, the framework will attempt to read all connection credentials from the platform's environment, according to the platform's developer documentation | no default value |  `REDIS_CLOUD_PLATFORM_TARGET=${ibmcloud}` |
+environment, according to the platform's developer documentation | no default value |  `REDIS_CLOUD_PLATFORM_TARGET=${ibmcloud}` |
+
+<br>
+#### Env Vars Required for Cloud Platform Hosted Redis
+
+| var name | required datatype | purpose | considerations | example |
+| -------- | ----------------- | ------- | -------------- | ------- |
+| `REDIS_CLOUD_PLATFORM_TARGET` | string | the string specifies one of the supported cloud platforms where the Redis instance is hosted. if set to a supported platform value, the framework will attempt to read all connection credentials from the platform's 
+
+
+<br>
+#### Env Vars Required for Direct TLS Connections to Any Redis Host
+
+| var name | required datatype | purpose | considerations | example |
+| -------- | ----------------- | ------- | -------------- | ------- |
+| `REDIS_SSL_CERT`             | string | specifies the local path to the TLS certificate | `REDIS_CERT="local/path_to/your.crt` |
+| `REDIS_COMPOSED_URL`         | string | a composed URL | make sure to include the port number in the URL string. do not set `REDIS_INSTANCE_URL` if you use a composed URL. | `REDIS_URL="rediss://admin:$PASS@URL_PATH.domain.com:${port}/0"` |
+
+checkout this [example script]() for further reference.
+
+<br>
+#### Env Vars for Basic Auth Connections to Redis
+
+| var name | required datatype | purpose | considerations | example |
+| -------- | ----------------- | ------- | -------------- | ------- |
+| `REDIS_INSTANCE_URL`         | string | a non-composed URL | make sure to include the port number in the URL string. make sure to include the redis protocol \'redis://\' or \'redis://\' | `REDIS_INSTANCE_URL="redis://yourdomain.com:${port}/0"` |
+| `REDIS_BASIC_AUTH_PASS` | string | a valid password for the username to use during basic authentication | if the password contains any special characters, wrap the string in SINGLE quotes to preseve the verbatim formatting | `REDIS_BASIC_AUTH_PASS=mypassword` |
+| `REDIS_BASIC_AUTH_USER` | string | (Redis ^6.0) a valid username to use during basic authentication | only compatible with Redis versions 6.0 or higher (^6.0). if your instance has a lower version, may not need a user name, however, check your Redis host documentation for information | `REDIS_BASIC_AUTH_USER=admin` |
+
+
+<br>
+#### Env Vars for No Auth Connections to Redis
+
+| var name | required datatype | purpose | considerations | example |
+| -------- | ----------------- | ------- | -------------- | ------- |
+| `REDIS_INSTANCE_URL`         | string | a non-composed URL | make sure to include the port number in the URL string. make sure to include the redis protocol \'redis://\' or \'redis://\' | `REDIS_INSTANCE_URL="redis://yourdomain.com:${port}/0"` |
 
 <br>
 

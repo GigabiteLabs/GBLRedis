@@ -19,6 +19,12 @@ module.exports = {
          * 
          * 
          */
-        supportedPlatforms:  ['ibmcloud']
+        supportedPlatforms:  ['ibmcloud'],
+                /**
+         * @type {Array<string>} - an array of strings representing
+         * all supported methods of connecting to a Redis instance. 
+         * 
+         */
+        connectionMethods:  ['cloud-platform', 'direct-ssl-tls', 'basic-auth', 'no-auth']
     }
 }

@@ -11,10 +11,26 @@ class IBMCloud extends CloudPlatform {
             if (!this.env.cloud.ibm.vcap) { 
                 throw this.errors.NO_VCAP_ENV
             }
-            return await this.connectSSL(this.env.cloud.ibm)
+            return await this.connectSSL(await this.connectionCredentials())
         } catch(error) {
             this.log.error(error)
         }
+    }
+
+    async connectionCredentials() {
+        const raw = this.env.cloud.ibm.vcapRaw
+        const vcap = this.env.cloud.ibm.vcap(raw)
+        const vcapRedis = this.env.cloud.ibm.vcapRedis(vcap)
+        const { composedUrl, certificate } = this.env.cloud.ibm.redisAuth(vcapRedis)
+        const ca = this.env.cloud.ibm.ca(certificate)
+        const sslConfig = this.env.cloud.ibm.sslConfig(ca)
+        let tlsConfig = this.env.cloud.ibm.tlsConfig(sslConfig)
+
+        // form final crednetials
+        const connectionURL = composedUrl
+        tlsConfig.prefix = this.env.config.prefix
+        // return
+        return { connectionURL, tlsConfig } 
     }
 }
 

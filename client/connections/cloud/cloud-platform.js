@@ -1,5 +1,4 @@
-const redis = require('redis')
-
+const SSLConnection = require('../ssl/ssl-connection')
 /**
  * A common class extended by all platform-specific
  * instances.
@@ -14,7 +13,6 @@ const redis = require('redis')
  * @property {Object} appConstants - an object containing all constants not configured as env vars
  * @property {Object} errors - an object containing categorized error message strings for loggind & error handling
  */
-
 class CloudPlatform {
     constructor() {
         this.tls = require('tls')
@@ -22,21 +20,7 @@ class CloudPlatform {
         this.env = require('../../constants/env')
         this.constants = require('../../constants/app-constants')
         this.msgs = require('../../constants/messages')
-
-        // setup env vars
-        this.log.debug(this.env.cloud.ibm.vcapRaw)
-        const raw = this.env.cloud.ibm.vcapRaw
-        const vcap = this.env.cloud.ibm.vcap(raw)
-        const vcapRedis = this.env.cloud.ibm.vcapRedis(vcap)
-        const { composedUrl, certificate } = this.env.cloud.ibm.redisAuth(vcapRedis)
-        const ca = this.env.cloud.ibm.ca(certificate)
-        const sslConfig = this.env.cloud.ibm.sslConfig(ca)
-        const tlsConfig = this.env.cloud.ibm.tlsConfig(sslConfig)
-
-        this.connectionURL = composedUrl
-        this.tlsConfig = tlsConfig
-        this.tlsConfig.prefix = this.env.config.prefix
-
+        this.log.trace('CloudPlatform Instantiated')
     }
 
     setLogger(className) {
@@ -64,7 +48,7 @@ class CloudPlatform {
                 this.msgs.errors.UNSUPPORTED_CLOUD_PLATFORM(
                     this.env.cloud.platform)) 
         }
-        // true & true means use cloud platform
+        // true && true == ok to use cloud platform
         return (platformSet && platformSupported)
     }
 
@@ -83,30 +67,24 @@ class CloudPlatform {
         }
     }
 
-    // makes an SSL connection to Redis
-    // and returns the client instance
-    async connectSSL(cloud) {
-        const self = this
+    /**
+     * 
+     * @param {tuple} credentials - A tuple containing
+     * two destructurable objects:
+     * `{ connectionURL, tlsConfig }`
+     * 
+     * `connectionURL`: string
+     * `tlsConfig`: object
+     * 
+     * @see IBMCloud
+     */
+    async connectSSL(credentials) {
         try {
-            // create redis client
-            self.client = 
-            await redis
-            .createClient(
-                self.connectionURL, 
-                self.tlsConfig
-            ).on("connect", function(err) {
-                self.log.info(self.msgs.success.CONNECTION_READY)
-            }).on("ready", function(err) {
-                self.log.info(self.msgs.success.CONNECTION_READY)
-            }).on("error", function(err) {
-                self.log.error(err)
-                throw self.msgs.errors.CONNECTION_ERROR(err)
-            }).on("reconnecting", function(err) {
-                self.log.warn(self.msgs.errors.RECONNECTING(err))
-            })
-            return self.client
+            const sslConnection = await new SSLConnection()
+            return await sslConnection.connectClient(credentials)
         } catch(error) {
-            throw error
+            this.log.error(error)
+            return undefined
         }
     }
 }

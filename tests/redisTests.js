@@ -6,6 +6,7 @@ async function test(client) {
 	 * test suite (these tests aren't thorough)
 	 */
 	try {
+		log.debug(process.env.REDIS_PREFIX)
 		// Seed initial data
 		log.info('seeding test data')
 		await client.redis.hmset(`test_table_one:seed-data`, "foo", "bar")

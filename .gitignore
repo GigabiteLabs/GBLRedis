@@ -103,3 +103,15 @@ dist
 
 # TernJS port file
 .tern-port
+
+# ignore local config scripts
+local_config/
+
+# generated documentation
+docs/site/*
+
+# IDEs
+.vscode/
+
+# testing output
+test/output/*

@@ -1,0 +1,13 @@
+{
+    "recurseDepth": 20,    
+    "source": {
+        "include": [ "./README.md", "./client/" ],
+        "exclude": [ "./node_modules/", "./test/", "./tests/" ],
+        "includePattern": ".+\\.js(doc|x)?$",
+        "excludePattern": "(^|\\/|\\\\)_"
+    },
+    "opts": {
+        "destination": "./docs/site/",
+        "recurse": true
+    }
+}

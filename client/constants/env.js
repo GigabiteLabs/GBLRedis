@@ -22,7 +22,8 @@ const raw = {
     // basic-auth / no-auth connections
     REDIS_INSTANCE_URL: process.env.REDIS_INSTANCE_URL,
     REDIS_BASIC_AUTH_PASS: process.env.REDIS_BASIC_AUTH_PASS,
-    REDIS_BASIC_AUTH_USER: process.env.REDIS_BASIC_AUTH_USER
+    REDIS_BASIC_AUTH_USER: process.env.REDIS_BASIC_AUTH_USER,
+    REDIS_DEFAULT_EXP: process.env.REDIS_DEFAULT_EXP
 }
 
 /**
@@ -36,6 +37,7 @@ const raw = {
  */
 const config = {
     prefix: raw.REDIS_PREFIX,
+    defaultExp: raw.REDIS_DEFAULT_EXP,
     configuredClientOpts: raw.REDIS_CLIENT_OPTS,
     redisClientOpts: async () => { 
         let defaultOpts = { prefix: raw.REDIS_PREFIX }
@@ -63,28 +65,27 @@ const config = {
  * to a redis instance hosted on IBM Cloud.
  * 
  * @typedef {object}
+ * @property {string} vcapRaw - the raw env var `VCAP_SERVICES`
+ * 
  */
 const ibm = {
-    /**
-     * @type {string} vcapRaw - the raw env var `VCAP_SERVICES`
-     */
     vcapRaw: raw.VCAP_SERVICES,
     /**
-     * @type {function} - a closure that parses `VCAP_SERVICES` to a
+     * @property {function} - a closure that parses `VCAP_SERVICES` to a
      * JS object.
      * @argument {object} vcapRaw - the raw value for `VCAP_SERVICES`
      * @returns {object} - a parsed `Object` from raw env var `VCAP_SERVICES`
      */
     vcap: (vcapRaw) => { return JSON.parse(vcapRaw) },
     /**
-     * @type {function} - a closure that parses the redis portion
+     * @property {function} - a closure that parses the redis portion
      * @argument {object} vcap - a parsed object representing `VCAP_SERVICES`
      * from the `vcap` object.
      * @returns {object} - the redis-specific portion of `VCAP_SERVICES`
      */
     vcapRedis: (vcap) => { return vcap['databases-for-redis'][0] },
     /**
-     * @type {function} - a closure that creates and returns the tuple to 
+     * @property {function} - a closure that creates and returns the tuple to 
      * use in an attempt to connect to Redis on IBM Cloud.
      * @argument {object} vcapRedis - the redis credentials parsed from
      * `VCAP_SERVICES`
@@ -105,7 +106,7 @@ const ibm = {
         return { composedUrl, certificate }
      },
     /**
-     * @type {function} - a closure that decodes a base64 CA certificate
+     * @property {function} - a closure that decodes a base64 CA certificate
      * to plain text
      * @argument {object} certificate - a base64 encoded CA certificate
      * @returns {object} - tuple containing destructurable ssl config values
@@ -122,7 +123,7 @@ const ibm = {
          }
     },
     /**
-     * @type {function} - a closure that converts an `sslConfig` object to
+     * @property {function} - a closure that converts an `sslConfig` object to
      * the final tlsConfig object to use in an SSL connection to Redis on 
      * IBM Cloud.
      * @argument {object} sslConfig - an object derived from the property `sslConfig`.
@@ -130,7 +131,7 @@ const ibm = {
      */
     tlsConfig: (sslConfig) => { return {tls: sslConfig} },
     /**
-     * @type {function} - a closure that parse a composed url out of the
+     * @property {function} - a closure that parse a composed url out of the
      * Redis auth portion of `VCAP_SERVICES`.
      * @argument {object} redisAuth - the Redis portion of the parsed `VCAP_SERVICES` object.
      * @returns {string} - the composed URL string to use in the connection to Redis hosted
@@ -153,12 +154,12 @@ const ibm = {
 */
 const cloud = {
     /** 
-    * @type {string} platform - the value configured in 
+    * @property {string} platform - the value configured in 
     * the env var for `REDIS_CLOUD_PLATFORM_TARGET`
     */
     platform: raw.REDIS_CLOUD_PLATFORM_TARGET,
     /**
-    * @type {object} ibm - an object encapsulating
+    * @property {object} ibm - an object encapsulating
     * all env vars required for making a connection
     * to a redis instance hosted on IBM Cloud.
     */
@@ -211,10 +212,10 @@ const basic = {
 }
 
 /**
- * @type {Object}
-* An object with values
+ * An object with values
 * required for a no-auth
 * connection to Redis.
+* @typedef {Object}
 * @property {string} instanceURL - the url
 * location of the Redis instance.
 */

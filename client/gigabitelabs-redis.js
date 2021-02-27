@@ -46,7 +46,7 @@ class GBLRedis {
     }
 
     // Sets an object in by key / valus
-    async set(key, value, table){
+    async set(key, value, table, userExp){
         const self = this
         return new Promise(function(resolve, reject){
             if(!key || !value) throw 'either key or value missing in function call!'
@@ -61,6 +61,8 @@ class GBLRedis {
                         resolve(null)
                     }
                 })
+                // async dispatch exp handling
+                self.handleExp(key, userExp)
             } catch (e) {
                 self.log.error(`Error: ${e}`)
                 reject(e)
@@ -93,7 +95,7 @@ class GBLRedis {
 
     // Updates an object by key / value by getting existing, merging them with assign, 
     // and re-setting the merged object
-    async update(key,value, table){
+    async update(key, value, table){
         const self = this
         return new Promise(async function(resolve, reject){
             if(!key || !value) throw 'either key or value missing in function call!'
@@ -124,6 +126,49 @@ class GBLRedis {
                 reject(e)
             }
         })
+    }
+    /**
+     * Handles setting up a key / value pair to automatically 
+     * expire (delete) themselves, if an auto-expiration time
+     * is either set in the env, or expicitly provided in a 
+     * function call.
+     * @param {string} key - the key (for the value) that should auto-expire
+     * @param {string} userExp - the number of seconds in which to expire,
+     * *IF* manually configured by the function call (overrides default)
+     */
+    async handleExp(key, userExp) {
+        // start with env config
+        let exp = this.env.config.defaultExp
+        // but if user has passed a value, override
+        if (userExp && typeof(userExp) == 'number') { exp = userExp }
+
+        // validate non-nil & GT 0
+        if((exp != null && exp != undefined)  && exp > 0){
+            try {
+                await this.redis.expire(key, exp)
+                this.log.info(`key: \'${key}\', set to auto expire in  \'${exp}\' seconds`)
+            } catch(error) {
+                this.log.warn(this.msgs.internal.HANDLE_EXP_FAILED_WITH(error))
+            }
+        }
+    }
+
+    /**
+     * A convenience method that allows the caller
+     * to directly set a key / value pair's expiration
+     * time in the future.
+     * @param {string} key - the key (for the value) 
+     * that should auto-expire
+     * @param {string} exp - the number of seconds after which
+     * the key / value should expire
+     */
+    async setExpiration(key, exp) {
+        try {
+            await this.redis.expire(key, exp)
+            this.log.info(`key: \'${key}\', set to auto expire in  \'${exp}\' seconds`)
+        } catch(error) {
+            this.log.warn(this.msgs.internal.SET_EXP_FAILED_WITH(error))
+        }
     }
 }
 

@@ -2,7 +2,7 @@
 </p>
 
 # GigabiteLabs-Redis
-An opinionated Redis DB client wrapper optimized for sharing a single Redis DB among several organizations, projects, and environments.
+A Redis DB client wrapper optimized for sharing a single Redis DB among several organizations, projects, and environments.
 
 [GigabiteLabs](https://gigabitelabs.com) is a creative design & development firm that specializes in engineering surprisingly great apps.
 <p>We turn big ideas into big impact 🚀 
@@ -23,13 +23,17 @@ An opinionated Redis DB client wrapper optimized for sharing a single Redis DB a
 
 ### Requirements
 
-- Your Redis instance needs to support TLS / SSL
-- Your Redis instance should be able to use a `rediss://` composed string
-- Each node.js app / instance that adopts this package has a unique name to be used as a key storage namespace
+- The target Redis instance needs to support authentication via one of the following methods:
+    - SSL / TLS
+        - basically all cloud platforms support some version of TLS or SSL using the `redis://` or `rediss://` service protocols.
+    - Cloud Platform env variables (only setup for IBM Cloud's environment at the moment)
+        - You can still connect to another cloud platform via SSL/TLS though!
+    - basic auth (just a password, or by using username and password)
+    - no authentication (hey, you do you)
+- The target environment must allow you to configure custom env vars (all config & opts are set via process.env)
+- Spend some time considering unique namespaces / a naming scheme for each application that attaches to the shared Redis DB.
 
-Some services that support TLS / SSL connections to Redis instances are IBM Cloud, AWS, Azure, and of course you could always configure a custom publicly accessible instance yourself.
-
-## Goals & Opinions
+## Goals
 
 **Goals**
 The main goals of this framework are:
@@ -38,8 +42,6 @@ The main goals of this framework are:
 - To ensure safety and collision-prevention while sharing data amongst several instances by using instance-specific key naming conventions
 - To make it possible for various apps within an org to share data by using common key-prefix naming conventions
 - To make it easy to store native objects as well as strings with little-to-no parsing or stringification necessary 
-
-
 
 
 ## Setup & Usage
@@ -172,26 +174,35 @@ This configuration also could potentially allow a single database service to be 
 How you use naming conventions for prefixing is up to you, but once they are set, they cannot be changed without manually migrating all data, which is outside the scope of this framework at this time.
 
 <br>
+
 #### Optional Env Vars
 
 The following env vars are not mandatory, and allow you some control over the framework behavior, defaults, and cloud platform config.
 
 | var name | required datatype | purpose | default | considerations | example |
 | -------- | ----------------- | ------- | ------- | -------------- | ------- |
-| `REDIS_CLIENT_OPTS` | stringified object that is parsable to JSON | set this env var to pass config options supported by the [redis framework](https://npmjs.com/package/redis) through to the underlying framework during initialization | no default value | configuring any options that conflict with the opinionated-nature of this framework, such as prefixes, will be ignored | `REDIS_CLIENT_OPTS=\'{ string_numbers: false }\'`
-| `REDIS_LOG_LEVEL` | string | the level of logging the framework should use. mmust be a level supported by [log4js](https://www.npmjs.com/package/log4js) | `REDIS_LOG_LEVEL=${error, warn, info, debug, trace}` |
-| `REDIS_DEFAULT_EXP` | int | the value is used by the framework auto-expire (delete) stored objects. | objects are **not** expired by default | if set, it will apply to *all* newly created objects, however it will not apply to any existing objects. updating an object has no effect on its expiration time, exp is only set when storing it for the first time. if an exp is provided during an operation, that exp *overrides* the value set by this var and will be used instead | `REDIS_DEFAULT_EXP=3600` // auto-exp all new objs in one hour |
-environment, according to the platform's developer documentation | no default value |  `REDIS_CLOUD_PLATFORM_TARGET=${ibmcloud}` |
+| `REDIS_CLIENT_OPTS` | stringified object that is parsable to JSON | set this env var to pass config options supported by the [redis framework](https://npmjs.com/package/redis) through to the underlying framework during initialization | no default value | configuring any options that conflict with the opinionated-nature of this framework, such as prefixes, will be ignored | `REDIS_CLIENT_OPTS=\'{ string_numbers: false }\'` |
+| `REDIS_LOG_LEVEL` | string | the level of logging the framework should use. mmust be a level supported by [log4js](https://www.npmjs.com/package/log4js) | `error` | none | `REDIS_LOG_LEVEL=${error, warn, info, debug, trace}` |
+| `REDIS_DEFAULT_EXP` | int | the value is used by the framework auto-expire (delete) stored objects. | objects are **not** expired by default | (see expanded notes) | `REDIS_DEFAULT_EXP=3600` // auto-exp all new objs in one hour |
 
-<br>
+**Expanded Notes**
+
+1) `REDIS_DEFAULT_EXP`: considerations
+If a value for this var is set, it will apply to *all* newly created objects. 
+However it will not apply to any existing objects. updating an object has no effect on its expiration time, since the exp is only set when storing it for the first time.
+
+If an exp is provided during an operation, that exp *overrides* the value set by this var and will be used instead.
+
+<br><br>
+
 #### Env Vars Required for Cloud Platform Hosted Redis
 
 | var name | required datatype | purpose | considerations | example |
 | -------- | ----------------- | ------- | -------------- | ------- |
-| `REDIS_CLOUD_PLATFORM_TARGET` | string | the string specifies one of the supported cloud platforms where the Redis instance is hosted. if set to a supported platform value, the framework will attempt to read all connection credentials from the platform's 
+| `REDIS_CLOUD_PLATFORM_TARGET` | string | specifies one of the supported cloud platforms hosting the Redis service. if set, the framework will attempt a connection using known methods for the respective platform |  | `REDIS_CLOUD_PLATFORM_TARGET=ibmcloud` |
 
+<br><br>
 
-<br>
 #### Env Vars Required for Direct TLS Connections to Any Redis Host
 
 | var name | required datatype | purpose | considerations | example |
@@ -201,7 +212,8 @@ environment, according to the platform's developer documentation | no default va
 
 checkout this [example script]() for further reference.
 
-<br>
+<br><br>
+
 #### Env Vars for Basic Auth Connections to Redis
 
 | var name | required datatype | purpose | considerations | example |
@@ -211,14 +223,15 @@ checkout this [example script]() for further reference.
 | `REDIS_BASIC_AUTH_USER` | string | (Redis ^6.0) a valid username to use during basic authentication | only compatible with Redis versions 6.0 or higher (^6.0). if your instance has a lower version, may not need a user name, however, check your Redis host documentation for information | `REDIS_BASIC_AUTH_USER=admin` |
 
 
-<br>
+<br><br>
+
 #### Env Vars for No Auth Connections to Redis
 
 | var name | required datatype | purpose | considerations | example |
 | -------- | ----------------- | ------- | -------------- | ------- |
 | `REDIS_INSTANCE_URL`         | string | a non-composed URL | make sure to include the port number in the URL string. make sure to include the redis protocol \'redis://\' or \'redis://\' | `REDIS_INSTANCE_URL="redis://yourdomain.com:${port}/0"` |
 
-<br>
+<br><br>
 
 #### Deprecated Env Vars
 

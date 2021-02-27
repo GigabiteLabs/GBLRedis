@@ -1,7 +1,7 @@
 {
   "name": "gigabitelabs-redis",
   "version": "1.0.0",
-  "description": "A Redis DB client for sharing a Redis DB instance among several Node.js applications.",
+  "description": "A Redis DB client wrapper optimized for sharing a single Redis DB among several organizations, projects, and environments.",
   "main": "index.js",
   "scripts": {
     "test": "node tests/test.js",

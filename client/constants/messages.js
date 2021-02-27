@@ -42,7 +42,13 @@ const messages = {
         BASIC_AUTH_NO_USER: `gigbatielabs-redis ::: INFO ::: no var was found for \'REDIS_BASIC_AUTH_USER\', which may or may not be an issue, client will attempt connection without a user specified.`,
     },
     internal: {
-        NOT_CONFIGURED: 'gigbatielabs-redis ::: ERROR ::: this operation is not yet configured.'
+        NOT_CONFIGURED: 'gigbatielabs-redis ::: ERROR ::: this operation is not yet configured.',
+        HANDLE_EXP_FAILED_WITH: (err) => {
+            return `gigbatielabs-redis ::: WARNING ::: attempt to set auto-expire failed with: ${err}`
+        },
+        SET_EXP_FAILED_WITH: (err) => {
+            return `gigbatielabs-redis ::: WARNING ::: attempt to set auto-expire failed with: ${err}`
+        },
     }
 }
 

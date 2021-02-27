@@ -102,6 +102,44 @@ async function test(client) {
 			log.info('attempt to delete non-existent object failed by returning a value!.\n\n')
 		}
 
+
+		// test setup default auto expire
+		log.info('testing auto expiration')
+		const expTable = 'auto-expiration'
+		const expiration1 = 4 // set manually as if from env
+		const expKey1 = 'test1'
+		const expValue1 ={ 'thisTest': 'rules' }
+		let setExpRes = await client.set(expKey1, expValue1, expTable, expiration1)
+		if(setExpRes){
+			log.info(`expiration set: ${setExpRes}`)
+		}else{
+			log.error('attempt to set exp failed!')
+		}
+		// get right away
+		let exp1Result = await client.get(expKey1, expTable)
+		if(exp1Result) {
+			log.info(`value was still there, this is expected: ${exp1Result}`)
+		} else {
+			log.error('value should NOT be null, FAIL')
+		}
+
+		async function checkExp() {
+			log.info('checking auto-expiration of key /value')
+			// get right away
+			let expResult2 = await client.get(expKey1, expTable)
+			if(!expResult2) {
+				log.error(`value should NOT be present, FAIL: ${exp1Result}`)
+				return expResult2
+			} else {
+				log.info('The value was not found, success!')
+				
+			}
+		}
+		// set timeout to exp after 
+		// time set
+		let sleepMs = (expiration1 + 1) * 1000
+		await new Promise(r => setTimeout( async () => { await checkExp(); return r }, sleepMs ))
+		await checkExp()
 		log.info('cleaning up remaining test data')
 		let clean = await client.del('seed-data', 'test_table_one')
 		if (clean){

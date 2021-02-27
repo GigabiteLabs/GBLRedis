@@ -7,7 +7,8 @@
     "test": "node tests/test.js",
     "test:setup": "bash tests/setup.sh",
     "test:teardown": "bash tests/teardown/teardown.sh",
-    "test:automated": "npm run test:setup; npm run test; npm run test:teardown"
+    "test:automated": "npm run test:setup; npm run test; npm run test:teardown",
+    "docs": "jsdoc -c ./docs/jsdoc_conf.json; open ./docs/site/index.html"
   },
   "repository": {
     "type": "git",

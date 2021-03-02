@@ -59,10 +59,10 @@ class SSLConnection {
         } 
     }
 
-    async getClient() {
+    async getClient(eventEmitter) {
         try {
             const creds = await this.directConnectionCredentials()
-            return await this.connectClient(creds)
+            return await this.connectClient(creds, eventEmitter)
         } catch(error) {
             this.log.error(error)
         }
@@ -70,13 +70,13 @@ class SSLConnection {
 
     // makes an SSL connection to Redis
     // and returns the client instance
-    async connectClient({ connectionURL, tlsConfig }) {
+    async connectClient({ connectionURL, tlsConfig }, eventEmitter) {
         this.log.trace('attempting SSL connection with redis client')
-        const self = this
+        const self = this 
         try {
              // read any additional client opts
             let clientOpts = await this.env.config.redisClientOpts()
-            let connectionConfig = Object.assign(tlsConfig, clientOpts)
+            let connectionConfig = await Object.assign(tlsConfig, clientOpts)
             // create redis client
             this.client = 
             await redis
@@ -84,16 +84,17 @@ class SSLConnection {
                 connectionURL,
                 connectionConfig,
             ).on("connect", function(msg) {
-                self.log.info(`${self.msgs.success.CONNECTION_READY}. raw message: ${msg}`)
-            }).on("ready", function(err) {
+                self.log.info(self.msgs.success.CONNECTING)
+            }).on("ready", async function(msg) {
                 self.log.info(self.msgs.success.CONNECTION_READY)
+                eventEmitter.emit('client ready')
             }).on("error", function(err) {
                 self.log.error(err)
                 throw self.msgs.errors.CONNECTION_ERROR(err)
             }).on("reconnecting", function(err) {
                 self.log.warn(self.msgs.errors.RECONNECTING(err))
             })
-            return this.client
+            return await this.client
         } catch(error) {
             throw error
         }

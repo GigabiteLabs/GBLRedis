@@ -6,12 +6,14 @@ class IBMCloud extends CloudPlatform {
         this.setLogger('IBMCloud')
     }
 
-    async getClient() {
+    async getClient(eventEmitter) {
         try {
             if (!this.env.cloud.ibm.vcap) { 
                 throw this.errors.NO_VCAP_ENV
             }
-            return await this.connectSSL(await this.connectionCredentials())
+            const credentials = await this.connectionCredentials()
+            const sslClient = await this.connectSSL(credentials, eventEmitter)
+            return sslClient
         } catch(error) {
             this.log.error(error)
         }

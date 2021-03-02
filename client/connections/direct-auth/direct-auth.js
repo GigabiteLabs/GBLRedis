@@ -88,10 +88,10 @@ class DirectAuthConnection {
         } 
     }
 
-    async getClient() {
+    async getClient(eventEmitter) {
         try {
             const creds = await this.directConnectionCredentials()
-            return await this.connectClient(creds)
+            return await this.connectClient(creds, eventEmitter)
         } catch(error) {
             this.log.error(error)
         }
@@ -100,7 +100,7 @@ class DirectAuthConnection {
     // attempts a connection to the
     // Redis instance using either basic auth
     // or no auth
-    async connectClient({ connectionURL, authConfig }) {
+    async connectClient({ connectionURL, authConfig }, eventEmitter) {
         this.log.trace('attempting direct connection to redis')
         const self = this
         try {
@@ -117,14 +117,15 @@ class DirectAuthConnection {
                 connectionURL,
                 connectionConfig,
             ).on("connect", function(msg) {
-                self.log.info(`${self.msgs.success.CONNECTION_READY}. raw message: ${msg}`)
-            }).on("ready", function(err) {
+                self.log.info(self.msgs.success.CONNECTING)
+            }).on("ready", function(msg) {
                 self.log.info(self.msgs.success.CONNECTION_READY)
+                eventEmitter.emit('client ready')
             }).on("error", function(err) {
                 self.log.error(err)
                 throw self.msgs.errors.CONNECTION_ERROR(err)
             }).on("reconnecting", function(err) {
-                self.log.warn(self.msgs.errors.RECONNECTING(err))
+                self.log.warn(self.msgs.warning.RECONNECTING(err))
             })
             return this.client
         } catch(error) {
@@ -132,5 +133,5 @@ class DirectAuthConnection {
         }
     }
 }
-    
+
 module.exports = DirectAuthConnection

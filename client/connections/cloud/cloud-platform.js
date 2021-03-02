@@ -78,10 +78,10 @@ class CloudPlatform {
      * 
      * @see IBMCloud
      */
-    async connectSSL(credentials) {
+    async connectSSL(credentials, eventEmitter) {
         try {
             const sslConnection = await new SSLConnection()
-            return await sslConnection.connectClient(credentials)
+            return await sslConnection.connectClient(credentials, eventEmitter)
         } catch(error) {
             this.log.error(error)
             return undefined

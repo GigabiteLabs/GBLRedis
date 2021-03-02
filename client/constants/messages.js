@@ -17,12 +17,6 @@ const messages = {
         CONNECTION_ERROR: (err) => {
             return `gigbatielabs-redis ::: ERROR ::: an error occurred while attempting to connect to Redis: ${err}`
         },
-        RECONNECTING: (err) => {
-            return `gigbatielabs-redis ::: WARNING ::: the connection to Redis was lost, reconnecting. raw msg: ${err}`
-        },
-        CONNECTION_WARNING: (err) => {
-            return `gigbatielabs-redis ::: WARNING ::: a warning occured while connecting to Redis: ${err}`
-        },
         PREFIX_UNDEFINED: `gigbatielabs-redis ::: ERROR ::: no definition exists for \'REDIS_PREFIX\', which is mandatory.`,
         CONNECTION_METHOD_INVALID: `gigbatielabs-redis ::: ERROR ::: the value defined for REDIS_CONNECTION_METHOD is not a supported connection method, see documentation.`,
         CONNECTION_METHOD_UNDEFINED: `gigbatielabs-redis ::: ERROR ::: REDIS_CONNECTION_METHOD: no env var value defined`,
@@ -36,10 +30,19 @@ const messages = {
         NO_AUTH_NO_URL: `gigbatielabs-redis ::: ERROR ::: no env var was configured for \'REDIS_INSTANCE_URL\' while attempting a no-auth connnection.`,
     },
     success: {
-        CONNECTION_READY: 'gigbatielabs-redis ::: connection to Redis was successfully established'
+        CONNECTING: 'gigbatielabs-redis ::: redis client is connecting .. ',
+        CONNECTION_READY: 'gigbatielabs-redis ::: redis connected successfully, connection ready'
     },
     info: {
         BASIC_AUTH_NO_USER: `gigbatielabs-redis ::: INFO ::: no var was found for \'REDIS_BASIC_AUTH_USER\', which may or may not be an issue, client will attempt connection without a user specified.`,
+    },
+    warning: {
+        RECONNECTING: (err) => {
+            return `gigbatielabs-redis ::: WARNING ::: the connection to Redis was lost, reconnecting. raw msg: ${err}`
+        },
+        CONNECTION_WARNING: (err) => {
+            return `gigbatielabs-redis ::: WARNING ::: a warning occured while connecting to Redis: ${err}`
+        },
     },
     internal: {
         NOT_CONFIGURED: 'gigbatielabs-redis ::: ERROR ::: this operation is not yet configured.',

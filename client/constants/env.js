@@ -34,7 +34,7 @@ const raw = {
  * @property {string} prefix - The configured prefix for 
  * to use in separating the instance's data from other
  * instances that share the same DB.
- */
+ */ 
 const config = {
     prefix: raw.REDIS_PREFIX,
     defaultExp: raw.REDIS_DEFAULT_EXP,

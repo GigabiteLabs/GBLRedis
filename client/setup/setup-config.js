@@ -4,11 +4,12 @@ const DirectAuthConnection = require('../connections/direct-auth/direct-auth')
 const log = require('../utilities/logger')
 
 class Setup {
-    constructor() {
+    constructor(eventEmitter) {
         this.log = log('Setup')
         this.env = require('../constants/env')
         this.constants = require('../constants/app-constants')
         this.msgs = require('../constants/messages')
+        this.eventEmitter = eventEmitter
     }
 
     // validates that all config
@@ -53,13 +54,17 @@ class Setup {
                 switch(this.env.config.connectionMethod) {
                     case 'cloud-platform':
                         const platform = await this.cloud.getPlatform()
-                        return await platform.getClient()
+                        const cpClient = await platform.getClient(this.eventEmitter)
+                        return cpClient
                     case 'direct-ssl-tls':
-                        return await this.ssl.getClient()
+                        const sslClient = await this.ssl.getClient(this.eventEmitter)
+                        return sslClient
                     case 'basic-auth':
-                        return await this.direct.getClient()
+                        const basicClient = await this.direct.getClient(this.eventEmitter)
+                        return basicClient
                     case 'no-auth':
-                        return await this.direct.getClient()
+                        const noAuthClient = await this.direct.getClient(this.eventEmitter)
+                        return noAuthClient
                     default:
                         throw this.msgs.errors.CONNECTION_METHOD_INVALID
                 }

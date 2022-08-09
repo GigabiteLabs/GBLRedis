@@ -1,10 +1,14 @@
 {
   "name": "gigabitelabs-redis",
-  "version": "0.1.3",
-  "description": "A Redis DB client for sharing a Redis DB instance among several Node.js applications.",
+  "version": "1.0.1",
+  "description": "A Redis DB client wrapper optimized for sharing a single Redis DB among several organizations, projects, and environments.",
   "main": "index.js",
   "scripts": {
-    "test": "node tests/test.js"
+    "test": "nyc mocha | tee test/test-output/test.log",
+    "test:setup": "bash test/setup.sh",
+    "test:teardown": "bash test/teardown/teardown.sh",
+    "test:automated": "npm run test:setup; npm run test; npm run test:teardown",
+    "docs": "jsdoc -c ./docs/jsdoc_conf.json; open ./docs/site/index.html"
   },
   "repository": {
     "type": "git",
@@ -22,7 +26,27 @@
   },
   "homepage": "https://github.com/GigabiteLabs/GBLRedis#readme",
   "dependencies": {
+    "chai": "^4.3.0",
+    "jsdoc": "^3.6.6",
     "log4js": "^6.1.2",
-    "redis": "^3.0.2"
+    "mocha": "^8.3.0",
+    "nyc": "^15.1.0",
+    "redis": "^3.0.2",
+    "uuid": "^8.3.2"
+  },
+  "mocha": {
+    "recursive": true,
+    "file": "test/setup/setup.js",
+    "diff": true,
+    "extension": [
+      "js"
+    ],
+    "slow": 75,
+    "timeout": 10000,
+    "ui": "bdd",
+    "watch-ignore": [
+      ".old"
+    ],
+    "exit": true
   }
 }

@@ -4,6 +4,9 @@
 # GigabiteLabs-Redis
 A Redis DB client wrapper optimized for sharing a single Redis DB among several organizations, projects, and environments.
 
+# NOTE
+as of May 29 2023 tgis project is archived and unsupported. feel free to fork it though.
+
 [GigabiteLabs](https://gigabitelabs.com) is a creative design & development firm that specializes in engineering surprisingly great apps.
 <p>We turn big ideas into big impact 🚀 
 
